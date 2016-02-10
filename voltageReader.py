@@ -77,8 +77,8 @@ class gMainWindow(QtGui.QMainWindow):
         self.setupRadout()
 
     def setupRadout(self):
-        #self.multimeter = Multimeter()
-        self.multimeter = MultimeterDummy()
+        self.multimeter = Multimeter()
+        #self.multimeter = MultimeterDummy() # just for debug
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.updateValue)
         self.FirstTime = None

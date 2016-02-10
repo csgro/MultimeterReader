@@ -1,2 +1,2 @@
 # MultimeterReader
-a few script to automate multimeter readout
+a few scripts to automate multimeter readout
