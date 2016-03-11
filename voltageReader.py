@@ -3,12 +3,17 @@
 
 import sys, os
 from PyQt4 import QtCore, QtGui
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+import matplotlib.pyplot as pyplot
+from collections import deque
 import time
 import logging as myLogger
 myLogger.basicConfig(format='%(asctime)s %(levelname)s:%(message)s',
                    level=myLogger.INFO)
-
-import visa
+try:
+    import visa
+except:
+    myLogger.critical(" ImportError: No module named visa\n\tContinue at your own risk!")
 
 class Multimeter:
     def __init__(self):        
@@ -67,8 +72,9 @@ class gMainWindow(QtGui.QMainWindow):
     TODO: add write file complete path
     """
 
-    READOUT_INTERVALS = {"10 ms": 10, "100 ms": 100, "500 ms": 500, "1 s": 1000, "10 s": 10000}
-
+    READOUT_INTERVALS = {"10 ms": 10, "100 ms": 100, "500 ms": 500,
+                         "1 s": 1000, "10 s": 10000}
+    FIFO_LENGTH = 100
     
     def __init__(self):
         super(gMainWindow, self).__init__()
@@ -77,11 +83,18 @@ class gMainWindow(QtGui.QMainWindow):
         self.setupRadout()
 
     def setupRadout(self):
-        self.multimeter = Multimeter()
-        #self.multimeter = MultimeterDummy() # just for debug
+        #self.multimeter = Multimeter()
+        self.multimeter = MultimeterDummy() # just for debug
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.updateValue)
         self.FirstTime = None
+
+        #creates 2 FIFO_LENGTH -long FIFOs for the collected data
+        self.plotX = deque([], self.FIFO_LENGTH)
+        self.plotY = deque([], self.FIFO_LENGTH)
+        self.plotbox.clear()
+        self.plotbox.set_ylabel('DC voltage (V)')
+        self.plotbox.set_xlabel('Time (s)')
         
     def updateValue(self):
         Values = self.multimeter.readVolt()
@@ -94,26 +107,32 @@ class gMainWindow(QtGui.QMainWindow):
                                      (Values[0]-self.FirstTime, Values[1]))
         myLogger.info("reading %f:%f" %(Values[0]-self.FirstTime, Values[1]))
         
+        self.plotX.append(Values[0]-self.FirstTime)
+        self.plotY.append(Values[1])
+        # plot is recreated each time!!! quite slow...
+        self.plotbox.clear()
+        self.plotbox.plot(self.plotX,self.plotY,'o-b')
+        self.plotbox.set_ylabel('DC voltage (V)')
+        self.plotbox.set_xlabel('Time (s)')
+        self.canvas.draw()
+        
     def setupUI(self):
-        self.setGeometry(100, 100, 250, 200)
+        self.setGeometry(100, 100, 900, 500)
         self.setWindowTitle('Voltage Reader')
 
+        # add matplotlib object here...
+        self.figure  = pyplot.figure()
+        self.plotbox = self.figure.add_subplot(111)
+        self.canvas  = FigureCanvas(self.figure)
+        self.canvas.setParent(self)
+        self.canvas.move(250, 10)
+       
         # buttons setup
         self.btnStartStop = QtGui.QPushButton('START', self)
         self.btnStartStop.setFixedSize(90, 55)
         self.btnStartStop.move(10, 120)
         self.btnStartStop.clicked.connect(self.ToggleDaq)
         self.btnStartStop.setFont(QtGui.QFont('SansSerif', 12))
-        
-        #btnStart = QtGui.QPushButton('START', self)
-        #btnStart.setFixedSize(70, 55)
-        #btnStart.move(90, 120)
-        #btnStart.clicked.connect(self.StartDaq)
-
-        #btnStop = QtGui.QPushButton('STOP', self)
-        #btnStop.setFixedSize(70, 55)
-        #btnStop.move(10, 120)
-        #btnStop.clicked.connect(self.StopDaq)
         
         btnQuit = QtGui.QPushButton('Quit', self)
         btnQuit.setFixedSize(70, 55)
