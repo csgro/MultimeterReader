@@ -93,8 +93,6 @@ class gMainWindow(QtGui.QMainWindow):
         self.plotX = deque([], self.FIFO_LENGTH)
         self.plotY = deque([], self.FIFO_LENGTH)
         self.plotbox.clear()
-        self.plotbox.set_ylabel('DC voltage (V)')
-        self.plotbox.set_xlabel('Time (s)')
         
     def updateValue(self):
         Values = self.multimeter.readVolt()
@@ -112,20 +110,25 @@ class gMainWindow(QtGui.QMainWindow):
         # plot is recreated each time!!! quite slow...
         self.plotbox.clear()
         self.plotbox.plot(self.plotX,self.plotY,'o-b')
-        self.plotbox.set_ylabel('DC voltage (V)')
-        self.plotbox.set_xlabel('Time (s)')
         self.canvas.draw()
         
     def setupUI(self):
-        self.setGeometry(100, 100, 900, 500)
+        self.setGeometry(100, 100, 925, 500)
         self.setWindowTitle('Voltage Reader')
 
         # add matplotlib object here...
-        self.figure  = pyplot.figure()
+        self.figure  = pyplot.figure(facecolor='none')
         self.plotbox = self.figure.add_subplot(111)
+        pyplot.tight_layout() # remove some margins...
         self.canvas  = FigureCanvas(self.figure)
         self.canvas.setParent(self)
-        self.canvas.move(250, 10)
+        self.canvas.move(275, 10)
+        xPlotLabel = QtGui.QLabel(self)
+        xPlotLabel.move(575,470)
+        xPlotLabel.setText('Time (s)')
+        yPlotLabel = QtGui.QLabel(self) # how to rotate it?
+        yPlotLabel.move(250,250)
+        yPlotLabel.setText('DCV')
        
         # buttons setup
         self.btnStartStop = QtGui.QPushButton('START', self)
